@@ -1,0 +1,4 @@
+node_modules/
+*.log
+sprint-plan.html
+.DS_Store
