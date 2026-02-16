@@ -1,6 +1,6 @@
 # Sprint Planning Assistant
 
-An automated sprint planning tool that connects to Jira and Confluence to generate a fully planned sprint with task prioritization, team velocity analysis, and capacity assessment.
+An automated sprint planning tool that connects to Jira and Confluence to generate a fully planned sprint with task prioritization, team velocity analysis, capacity assessment, and optional execution to assign tickets directly in Jira.
 
 ## Use Case
 
@@ -10,8 +10,9 @@ An automated sprint planning tool that connects to Jira and Confluence to genera
 1. Fetch current project status, commitments from Jira and Confluence pages
 2. Analyze team velocity and capacity
 3. Suggest task prioritization
+4. (Optional) Execute: assign tickets, transition statuses, create new tickets
 
-**Result:** Fully planned sprint with tasks organized by priority
+**Result:** Fully planned sprint with tasks organized, assigned, and created in Jira
 
 ## Boards Covered
 
@@ -24,14 +25,61 @@ An automated sprint planning tool that connects to Jira and Confluence to genera
 ## Architecture
 
 ```
-plan-sprint.mjs          # Main CLI entry point
+plan-sprint.mjs              # Main CLI entry point
 lib/
-  mcp-client.mjs         # Atlassian MCP connection manager
-  jira-fetcher.mjs       # Jira data retrieval (sprints, tickets, velocity)
-  confluence-fetcher.mjs  # Confluence commitments & availability
-  velocity-analyzer.mjs   # Velocity calculation & capacity assessment
-  sprint-planner.mjs      # Task scoring, prioritization & plan generation
+  mcp-client.mjs             # Atlassian MCP connection manager
+  jira-fetcher.mjs           # Jira data retrieval (sprints, tickets, velocity)
+  confluence-fetcher.mjs     # Confluence commitments & availability
+  velocity-analyzer.mjs      # Velocity calculation & capacity assessment
+  sprint-planner.mjs         # Task scoring, prioritization & plan generation
+  sprint-executor.mjs        # Execute plan: assign, transition, create tickets
 ```
+
+## Running
+
+### Prerequisites
+- Node.js v18+ (installed at `~/.local/node-v22.13.1-darwin-arm64/bin`)
+- Atlassian MCP access (via `mcp-remote`)
+- Authenticated Atlassian session
+
+### Plan Only (Read-Only)
+
+```bash
+node plan-sprint.mjs
+```
+
+Generates `sprint-plan.md` without modifying anything in Jira.
+
+### Dry Run (Preview Execution)
+
+```bash
+node plan-sprint.mjs --dry-run
+```
+
+Shows exactly what would happen if you execute, without making any changes.
+
+### Execute (Assign Tickets)
+
+```bash
+node plan-sprint.mjs --execute
+```
+
+Generates the plan and then assigns tickets to team members in Jira. Prompts for confirmation before making changes.
+
+### Execute with All Options
+
+```bash
+node plan-sprint.mjs --execute --create --transition -y
+```
+
+| Flag | Description |
+|------|-------------|
+| `--execute` | Enable execution mode (assigns tickets) |
+| `--dry-run` | Preview execution without changes |
+| `--create` | Create new Jira tickets for unassigned items |
+| `--transition` | Transition Backlog tickets to "To Do" |
+| `-y`, `--yes` | Skip confirmation prompt |
+| `-h`, `--help` | Show usage help |
 
 ## What the Planner Does
 
@@ -62,7 +110,7 @@ Tickets are scored using a multi-factor algorithm:
 | Bug type | +1.5 pts | Bugs get automatic priority boost |
 | Story points | 0-2 pts | Larger items get attention factor |
 
-### Phase 4: Sprint Plan Generation
+### Phase 4: Sprint Plan Output
 Produces a comprehensive markdown plan including:
 - Sprint goal and date range
 - Executive summary table
@@ -73,33 +121,19 @@ Produces a comprehensive markdown plan including:
 - Stretch goals
 - Risks and notes
 
-## Running
+### Phase 5: Execution (Optional)
+When `--execute` or `--dry-run` is used:
+- **Assign tickets** to team members via Jira API
+- **Transition statuses** from Backlog to "To Do" (with `--transition`)
+- **Create new tickets** for planned items (with `--create`)
+- Generates an `execution-report.md` with results
 
-### Prerequisites
-- Node.js v18+ (installed at `~/.local/node-v22.13.1-darwin-arm64/bin`)
-- Atlassian MCP access (via `mcp-remote`)
-- Authenticated Atlassian session
+## Output Files
 
-### Run Sprint Planning
-
-```bash
-node plan-sprint.mjs
-```
-
-The sprint plan will be:
-- Printed to stdout
-- Saved to `sprint-plan.md` in the project directory
-
-### Output Example
-
-The generated `sprint-plan.md` includes:
-- Sprint dates and goals
-- Velocity analysis per project
-- Capacity assessment per team member
-- Prioritized ticket list with scores
-- Sprint assignments per person
-- Stretch goals and overflow items
-- Risk assessment
+| File | Description |
+|------|-------------|
+| `sprint-plan.md` | Generated sprint plan (always created) |
+| `execution-report.md` | Execution results (only with --execute/--dry-run) |
 
 ## Environment Variables
 

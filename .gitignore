@@ -1,4 +1,5 @@
 node_modules/
 *.log
 sprint-plan.html
+execution-report.md
 .DS_Store
